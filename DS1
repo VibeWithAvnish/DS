@@ -50,3 +50,10 @@ public class Client {
         }
     }
 }
+
+1.	javac *.java
+2.	rmic Servant
+3.	start rmiregistry (new terminal)
+4.	java Server
+5.	java Client
+
