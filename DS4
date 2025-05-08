@@ -1,0 +1,102 @@
+ClockServer.java
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class ClockServer {
+    static List<ObjectOutputStream> clients = new ArrayList<>();
+    static List<Long> timeDiffs = new ArrayList<>();
+
+    public static void main(String[] args) throws Exception {
+        ServerSocket server = new ServerSocket(8080);
+        System.out.println("Server started.");
+
+        // Thread to accept clients
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Socket client = server.accept();
+                    ObjectOutputStream out = new ObjectOutputStream(client.getOutputStream());
+                    ObjectInputStream in = new ObjectInputStream(client.getInputStream());
+                    clients.add(out);
+                    System.out.println("Client connected.");
+                    new Thread(() -> {
+                        try {
+                            while (true) {
+                                long clientTime = (Long) in.readObject();
+                                long serverTime = System.currentTimeMillis();
+                                timeDiffs.add(serverTime - clientTime);
+                                Thread.sleep(5000);
+                            }
+                        } catch (Exception e) {}
+                    }).start();
+                } catch (IOException e) {}
+            }
+        }).start();
+
+        // Thread to synchronize time
+        new Thread(() -> {
+            while (true) {
+                try {
+                    if (!timeDiffs.isEmpty()) {
+                        long sum = 0;
+                        for (long diff : timeDiffs) sum += diff;
+                        long avgDiff = sum / (timeDiffs.size() + 1);
+                        long syncTime = System.currentTimeMillis() - avgDiff;
+                        for (ObjectOutputStream out : clients) {
+                            out.writeObject(syncTime);
+                        }
+                        timeDiffs.clear();
+                        System.out.println("Sync time sent: " + new Date(syncTime));
+                    }
+                    Thread.sleep(10000);
+                } catch (Exception e) {}
+            }
+        }).start();
+    }
+}
+
+ClockClient.java
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class ClockClient {
+    public static void main(String[] args) throws Exception {
+        Socket socket = new Socket("127.0.0.1", 8080);
+        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+
+        // Send local time every 5s
+        new Thread(() -> {
+            try {
+                while (true) {
+                    out.writeObject(System.currentTimeMillis());
+                    Thread.sleep(5000);
+                }
+            } catch (Exception e) {}
+        }).start();
+
+        // Receive sync time
+        new Thread(() -> {
+            try {
+                while (true) {
+                    long syncTime = (Long) in.readObject();
+                    System.out.println("Synced time: " + new Date(syncTime));
+                }
+            } catch (Exception e) {}
+        }).start();
+    }
+}
+
+*******************************************************************************************************
+
+
+# In terminal 1
+javac ClockServer.java
+java ClockServer
+
+# In terminal 2 (and 3 for more clients)
+javac ClockClient.java
+java ClockClient
