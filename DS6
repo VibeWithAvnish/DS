@@ -1,0 +1,131 @@
+import java.util.*;
+
+public class BullyAlgorithm {
+    static int[] processes;
+    static boolean[] isAlive;
+    static int n, coordinator;
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        // Input total number of processes
+        System.out.print("Enter number of processes: ");
+        n = sc.nextInt();
+        processes = new int[n];
+        isAlive = new boolean[n];
+
+        // Input process IDs
+        System.out.println("Enter process IDs:");
+        for (int i = 0; i < n; i++) {
+            processes[i] = sc.nextInt();
+            isAlive[i] = true; // Initially all are alive
+        }
+
+        Arrays.sort(processes); // Sort to get highest easily
+        coordinator = processes[n - 1];
+
+        System.out.println("\nInitially, Process " + coordinator + " is the coordinator.");
+
+        // Mark failed processes
+        System.out.print("Enter number of failed processes: ");
+        int failedCount = sc.nextInt();
+
+        System.out.println("Enter failed process IDs:");
+        for (int i = 0; i < failedCount; i++) {
+            int failedId = sc.nextInt();
+            for (int j = 0; j < n; j++) {
+                if (processes[j] == failedId) {
+                    isAlive[j] = false;
+                    break;
+                }
+            }
+        }
+
+        // Input the process initiating election
+        System.out.print("\nEnter the process that notices coordinator failure: ");
+        int initiator = sc.nextInt();
+        System.out.println("\nElection initiated by Process " + initiator);
+        boolean higherExists = false;
+
+        for (int i = 0; i < n; i++) {
+            if (processes[i] > initiator && isAlive[i]) {
+                System.out.println("Process " + initiator + " sends ELECTION to " + processes[i]);
+                higherExists = true;
+            }
+        }
+
+        if (!higherExists) {
+            System.out.println("No higher alive process. Process " + initiator + " becomes coordinator.");
+            coordinator = initiator;
+        } else {
+            // Elect highest alive process
+            for (int i = n - 1; i >= 0; i--) {
+                if (isAlive[i]) {
+                    coordinator = processes[i];
+                    break;
+                }
+            }
+            System.out.println("\nProcess " + coordinator + " becomes the new coordinator.");
+        }
+        sc.close();
+    }
+}
+RING ALGO
+
+import java.util.*;
+
+class RingAlgorithm {
+    private List<Integer> processes;
+    private Integer leader;
+
+    // Constructor to initialize processes and leader
+    public RingAlgorithm(List<Integer> processes) {
+        this.processes = new ArrayList<>(processes);
+        this.leader = null;
+    }
+
+    // Start the election process
+    public void startElection(int initiator) {
+        System.out.println("Process " + initiator + " starts an election.");
+
+        int index = processes.indexOf(initiator);
+        if (index == -1) {  // If initiator is not found
+            System.out.println("Error: Initiator process not found.");
+            return;
+        }
+
+        // Pass the election message around the ring
+        for (int i = 0; i < processes.size(); i++) {
+            int process = processes.get((index + i) % processes.size());
+            System.out.println("Process " + process + " passes the election message.");
+        }
+
+        // The process with the highest ID becomes the leader
+        leader = Collections.max(processes);
+        System.out.println("Process " + leader + " is elected as the leader.");
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // Input the number of processes
+        System.out.print("Enter number of processes: ");
+        int n = scanner.nextInt();
+
+        List<Integer> processes = new ArrayList<>();
+        System.out.println("Enter process IDs: ");
+        for (int i = 0; i < n; i++) {
+            processes.add(scanner.nextInt());
+        }
+
+        // Input the initiator process ID
+        System.out.print("Enter the initiator process ID: ");
+        int initiator = scanner.nextInt();
+
+        // Run the Ring Algorithm
+        RingAlgorithm ring = new RingAlgorithm(processes);
+        ring.startElection(initiator);
+
+        scanner.close();
+    }
+}
