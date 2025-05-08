@@ -1,0 +1,75 @@
+Client.java
+idl 
+module CalculatorApp { 
+interface Calculator { 
+float add(in float a, in float b); 
+float subtract(in float a, in float b); 
+}; 
+};
+***************************************************************************************************
+CalculatorImpl.java
+import CalculatorApp.CalculatorPOA; 
+public class CalculatorImpl extends CalculatorPOA { 
+public float add(float a, float b) { 
+return a + b; 
+} 
+public float subtract(float a, float b) { 
+return a - b; 
+} 
+}
+*****************************************************************************************************
+
+
+
+
+
+CalculatorServer.java
+import CalculatorApp.*; 
+import org.omg.CORBA.*; 
+import org.omg.CosNaming.*; 
+import org.omg.PortableServer.*; 
+public class CalculatorServer { 
+public static void main(String[] args) { 
+try { 
+ORB orb = ORB.init(args, null); 
+POA rootPoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA")); 
+rootPoa.the_POAManager().activate(); 
+CalculatorImpl calculatorImpl = new CalculatorImpl(); 
+org.omg.CORBA.Object ref = rootPoa.servant_to_reference(calculatorImpl); 
+Calculator calculatorRef = CalculatorHelper.narrow(ref); 
+org.omg.CORBA.Object objRef = orb.resolve_initial_references("NameService"); 
+NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef); 
+ncRef.rebind(ncRef.to_name("Calculator"), calculatorRef); 
+System.out.println("Server is ready and waiting..."); 
+orb.run(); 
+} catch (Exception e) { 
+e.printStackTrace(); 
+} 
+} 
+}
+*****************************************************************************************
+CalculatorClient.java
+import CalculatorApp.*; 
+import org.omg.CORBA.*; 
+import org.omg.CosNaming.*; 
+public class CalculatorClient { 
+public static void main(String[] args) { 
+try { 
+ORB orb = ORB.init(args, null); 
+org.omg.CORBA.Object objRef = orb.resolve_initial_references("NameService"); 
+NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef); 
+Calculator calc = CalculatorHelper.narrow(ncRef.resolve_str("Calculator")); 
+System.out.println("Add: " + calc.add(4.0f, 2.0f)); 
+System.out.println("Subtract: " + calc.subtract(4.0f, 2.0f)); 
+} catch (Exception e) { 
+e.printStackTrace(); 
+} 
+} 
+}
+
+******************************************************************************************
+1.	idlj -fall Calculator.idl
+2.	javac *.java CalculatorApp/*.java
+3.	tnameserv -ORBInitialPort 1050 &
+4.	java CalculatorServer -ORBInitialPort 1050 -ORBInitialHost localhost
+5.	java CalculatorClient -ORBInitialPort 1050 -ORBInitialHost localhost
