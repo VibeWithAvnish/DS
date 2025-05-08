@@ -1,0 +1,65 @@
+#include <mpi.h>
+#include <stdio.h>
+
+#define SIZE 10
+int array[SIZE] = {1,2,3,4,5,6,7,8,9,10};
+int temp[SIZE];
+
+int main(int argc, char* argv[]) {
+    int rank, num_procs;
+    int part_size, received_size;
+    MPI_Status status;
+
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);   // Get process rank
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs); // Get total processes
+
+    if (rank == 0) {
+        int i, start_index;
+        part_size = SIZE / num_procs;
+
+        // Send parts of array to other processes
+        for (i = 1; i < num_procs; i++) {
+            start_index = i * part_size;
+            int remaining = (i == num_procs - 1) ? SIZE - start_index : part_size;
+
+            MPI_Send(&remaining, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(&array[start_index], remaining, MPI_INT, i, 0, MPI_COMM_WORLD);
+        }
+
+        // Master calculates its part
+        int sum = 0;
+        for (i = 0; i < part_size; i++)
+            sum += array[i];
+
+        // Receive and add partial sums
+        int part_sum;
+        for (i = 1; i < num_procs; i++) {
+            MPI_Recv(&part_sum, 1, MPI_INT, i, 0, MPI_COMM_WORLD, &status);
+            sum += part_sum;
+        }
+
+        printf("Total sum = %d\n", sum);
+    } else {
+        // Receive data from master
+        MPI_Recv(&received_size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(temp, received_size, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+
+        // Calculate sum of received part
+        int partial_sum = 0;
+        for (int i = 0; i < received_size; i++)
+            partial_sum += temp[i];
+
+        // Show what each process did (optional)
+        printf("Process %d: Partial sum = %d\n", rank, partial_sum);
+
+        // Send result back to master
+        MPI_Send(&partial_sum, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    }
+
+    MPI_Finalize();
+    return 0;
+}
+***************************************************************************************************
+mpicc -o sum_mpi sum_mpi.c
+mpirun -np 4 ./sum_mpi
