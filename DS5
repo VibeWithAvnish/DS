@@ -1,0 +1,67 @@
+import java.util.*;
+public class TokenRingSimple {
+    public static void main(String[] args) {
+        Scanner scan = new Scanner(System.in);
+        // Get number of nodes
+        System.out.print("Enter the number of nodes in the ring: ");
+        int n = scan.nextInt();
+        int token = 0; // Initially token is at node 0
+        int choice;
+
+        // Print ring nodes
+        System.out.print("Ring formed: ");
+        for (int i = 0; i < n; i++) {
+            System.out.print(i + " ");
+        }
+        System.out.println();
+
+        do {
+            // Sender, receiver, and data
+            System.out.print("\nEnter sender node: ");
+            int sender = scan.nextInt();
+
+            System.out.print("Enter receiver node: ");
+            int receiver = scan.nextInt();
+
+            System.out.print("Enter data to send: ");
+            int data = scan.nextInt();
+
+            // Token passing until it reaches the sender
+            System.out.print("Token passing: ");
+            int i = token;
+            while (i % n != sender) {
+                System.out.print(i % n + " -> ");
+                i++;
+            }
+            System.out.println(sender);
+
+            // Sender enters critical section
+            System.out.println("Sender " + sender + " has entered the Critical Section...");
+            // Here you could log the activity to console instead of file
+            System.out.println("Sender " + sender + " sending data: " + data);
+
+            // Data forwarding through intermediate nodes
+            for (int j = (sender + 1) % n; j != receiver; j = (j + 1) % n) {
+                System.out.println("Data " + data + " forwarded by node " + j);
+            }
+
+            // Receiver receives data
+            System.out.println("Receiver " + receiver + " received data: " + data);
+
+            // Token moves to the sender for the next round
+            token = sender;
+
+            // Ask user if they want to continue
+            do {
+                System.out.print("\nDo you want to send again? (1 = Yes, 0 = No): ");
+                choice = scan.nextInt();
+                if (choice != 0 && choice != 1) {
+                    System.out.println("Invalid input! Please enter 1 or 0.");
+                }
+            } while (choice != 0 && choice != 1);
+
+        } while (choice == 1);
+
+        scan.close();
+    }
+}
